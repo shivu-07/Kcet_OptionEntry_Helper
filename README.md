@@ -238,6 +238,11 @@ The cutoff data is sourced from official KEA documents:
 
 </div>
 
+### 📚 Data Sources / References
+The cutoff ranks and college data used in this project were compiled from the following official/public documents:
+- 🔗 **[KCET Round 3 Cutoff PDF](https://image-static.collegedunia.com/public/image/KCET_Round_3_Cutoff_f4bf07a0b55522f47bdd70ed12d3ca4a.pdf)**
+- 🔗 **[Engineering Seat Matrix Draft 2026 (KEA)](https://cetonline.karnataka.gov.in/keawebentry456/ugcet2026/Eng_seatkannada.pdf)**
+
 ---
 
 <!-- ═════════════════════════════════════════════════════════════════[...]
