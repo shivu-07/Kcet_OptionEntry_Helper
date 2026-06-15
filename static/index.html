@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<title>KCET Option Entry Helper</title>
+<link rel="stylesheet" href="style.css?v=13"/>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     TOP BAR
+═══════════════════════════════════════════════════════════════════ -->
+<header class="topbar">
+  <div class="topbar-left">
+    <button class="btn btn-mobile-menu" id="btn-mobile-filters" onclick="toggleMobileFilters()">
+      <span style="font-size: 1.1rem;">☰</span> Filters
+    </button>
+    <span class="topbar-logo">🎓</span>
+    <div class="topbar-text-group">
+      <h1 class="topbar-title">KCET Option Entry Helper</h1>
+      <p class="topbar-sub">UGCET 2025 · Round 3 · Rest of Karnataka</p>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <button class="btn btn-mobile-menu" id="btn-mobile-options" onclick="toggleMobileOptions()">
+      📋 My Options (<span id="mobile-options-count">0</span>)
+    </button>
+    <div class="stat-pill hide-on-mobile" id="stat-colleges">– colleges</div>
+    <div class="stat-pill hide-on-mobile" id="stat-options">– options saved</div>
+    <div class="stat-pill hide-on-mobile" id="stat-lan" title="LAN sharing link">📶 …</div>
+    <button class="btn btn-outline hide-on-mobile" id="btn-export-pdf" onclick="exportPDF()" disabled style="background: var(--blue); color: #fff; border-color: var(--blue);">
+      📄 Export PDF
+    </button>
+  </div>
+</header>
+
+<div id="mobile-backdrop" class="mobile-backdrop" onclick="closeMobilePanels()"></div>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     MAIN 3-COLUMN LAYOUT
+═══════════════════════════════════════════════════════════════════ -->
+<main class="layout">
+
+  <!-- ── LEFT: FILTER PANEL ─────────────────────────────────────── -->
+  <aside class="panel-filter">
+    <div class="panel-header">
+      <div style="display: flex; align-items: center; gap: 0.5rem;">
+        <span>🔍 Search & Filter</span>
+        <button class="btn-link" onclick="resetFilters()">Reset</button>
+      </div>
+      <button class="btn-icon mobile-close-btn" onclick="toggleMobileFilters()">✕</button>
+    </div>
+
+    <div class="filter-group">
+      <label class="filter-label">College Name or Code</label>
+      <input id="f-search" class="input" type="text"
+             placeholder="Search name or code.." oninput="debounceSearch()"/>
+    </div>
+
+    <div class="filter-group">
+      <label class="filter-label">District</label>
+      <select id="f-district" class="input" onchange="applyFilters()">
+        <option value="">All districts</option>
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <label class="filter-label">Institution type</label>
+      <select id="f-type" class="input" onchange="applyFilters()">
+        <option value="">All types</option>
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <label class="filter-label">Autonomous</label>
+      <select id="f-autonomous" class="input" onchange="applyFilters()">
+        <option value="">All</option>
+        <option value="1">Autonomous only</option>
+        <option value="0">Non-autonomous only</option>
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <label class="filter-label">Course offered</label>
+      <select id="f-course" class="input" onchange="applyFilters()">
+        <option value="">All courses</option>
+      </select>
+    </div>
+
+    <div id="f-cat-wrap" style="display: none;" class="filter-group">
+      <label class="filter-label">Seat Category</label>
+      <select id="f-category" class="input" onchange="applyFilters()">
+        <option value="">Select category..</option>
+      </select>
+    </div>
+
+    <div id="f-rank-wrap" style="display: none;" class="filter-group">
+      <label id="f-rank-label" class="filter-label">Rank range</label>
+      <div class="rank-range">
+        <input id="f-rank-min" class="input input-sm" type="number"
+               placeholder="Min" min="1" oninput="applyFilters()"/>
+        <span>–</span>
+        <input id="f-rank-max" class="input input-sm" type="number"
+               placeholder="Max" min="1" oninput="applyFilters()"/>
+      </div>
+    </div>
+
+    <div class="filter-group">
+      <label class="filter-label">Sort by</label>
+      <select id="f-sort" class="input" onchange="applyFilters()">
+        <option value="name">College name (A–Z)</option>
+        <option value="name_desc">College name (Z–A)</option>
+        <option value="code_asc">College code (Ascending)</option>
+        <option value="code_desc">College code (Descending)</option>
+        <option id="f-sort-rank-asc" value="rank_asc" style="display:none;">Rank (Low to High)</option>
+        <option id="f-sort-rank-desc" value="rank_desc" style="display:none;">Rank (High to Low)</option>
+      </select>
+    </div>
+
+    <button class="btn btn-clear-filters btn-block" onclick="resetFilters()">
+      🗑 Clear Filters
+    </button>
+
+    <div class="filter-results" id="filter-results">
+      Showing all colleges
+    </div>
+  </aside>
+
+  <!-- ── CENTER: COLLEGE BROWSER ───────────────────────────────── -->
+  <section class="panel-colleges">
+
+
+    <div id="college-list" class="college-list">
+      <div class="loading">Loading colleges…</div>
+    </div>
+
+    <div id="load-more-wrap" class="load-more-wrap" style="display:none">
+      <button class="btn btn-outline btn-block" onclick="loadMore()">
+        Load more colleges
+      </button>
+    </div>
+  </section>
+
+  <!-- ── RIGHT: MY OPTIONS ──────────────────────────────────────── -->
+  <aside class="panel-options">
+    <div class="panel-header">
+      <div style="display: flex; align-items: center; gap: 0.5rem;">
+        <span>📋 My Option List</span>
+        <span id="options-count" class="count-badge">0</span>
+      </div>
+      <button class="btn-icon mobile-close-btn" onclick="toggleMobileOptions()">✕</button>
+    </div>
+
+    <div id="options-list" class="options-list">
+      <div class="empty-state">
+        <p>No options added yet.</p>
+        <p class="empty-sub">Click <strong>+ Add</strong> on any course to add it here.</p>
+      </div>
+    </div>
+
+    <div class="options-footer">
+      <p class="drag-hint">↕ Drag to re-order priority</p>
+    </div>
+  </aside>
+
+</main>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     CUTOFF MODAL
+═══════════════════════════════════════════════════════════════════ -->
+<div id="modal-overlay" class="modal-overlay" onclick="closeModal(event)">
+  <div class="modal" id="modal-box">
+    <div class="modal-header">
+      <div>
+        <h2 id="modal-title" class="modal-title">College Cutoffs</h2>
+        <p id="modal-sub"  class="modal-sub"></p>
+      </div>
+      <button class="modal-close" onclick="closeModalBtn()">✕</button>
+    </div>
+    <div id="modal-body" class="modal-body">
+      <div class="loading">Loading cutoff data…</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     TOOLTIP
+═══════════════════════════════════════════════════════════════════ -->
+<div id="tooltip" class="tooltip" style="display:none"></div>
+
+<script src="app.js?v=13"></script>
+</body>
+</html>
