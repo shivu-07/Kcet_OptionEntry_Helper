@@ -63,40 +63,43 @@ async function loadStats() {
 async function loadFilters() {
   const data = await apiFetch("/api/filters");
 
-  // Populate district dropdown
-  const distSel = document.getElementById("f-district");
+  // Populate district checkboxes
+  const distItems = document.getElementById("f-district-items");
+  if (distItems) distItems.innerHTML = "";
   state.districtCounts = {};
   state.totalColleges = data.total_colleges || 0;
   data.districts.forEach(d => {
     state.districtCounts[d.id] = d.college_count;
-    const opt = document.createElement("option");
-    opt.value = d.id;
-    opt.textContent = d.name;
-    distSel.appendChild(opt);
+    const lbl = document.createElement("label");
+    lbl.className = "checkbox-label";
+    lbl.innerHTML = `<input type="checkbox" value="${d.id}" class="dist-chk" onchange="updateDistrictSelection()"> ${d.name}`;
+    distItems.appendChild(lbl);
   });
 
   // Populate institution type dropdown
   const typeSel = document.getElementById("f-type");
+  if (typeSel) typeSel.innerHTML = '<option value="">All types</option>';
   data.institution_types.forEach(t => {
     const opt = document.createElement("option");
     opt.value = t;
     // Shorten long labels
     opt.textContent = shortType(t);
-    typeSel.appendChild(opt);
+    if (typeSel) typeSel.appendChild(opt);
   });
 
   // Populate course dropdown
   const courseSel = document.getElementById("f-course");
+  if (courseSel) courseSel.innerHTML = '<option value="">All courses</option>';
   data.courses.forEach(c => {
     const opt = document.createElement("option");
     opt.value = c;
     opt.textContent = c;
-    courseSel.appendChild(opt);
+    if (courseSel) courseSel.appendChild(opt);
   });
 
   // Populate category dropdown
-  const catHtml = Object.entries(data.seat_categories).map(([code, desc]) =>
-    `<option value="${code}">${code} — ${desc}</option>`
+  const catHtml = data.seat_categories.map(c =>
+    `<option value="${c.code}">${c.code} — ${c.description}</option>`
   ).join("");
   document.getElementById("f-category").insertAdjacentHTML("beforeend", catHtml);
 }
@@ -116,7 +119,7 @@ function shortType(t) {
 }
 
 function applyFilters() {
-  state.filters.district_id      = document.getElementById("f-district").value;
+  // district_id is handled in updateDistrictSelection
   state.filters.institution_type = document.getElementById("f-type").value;
   state.filters.autonomous       = document.getElementById("f-autonomous").value;
   state.filters.course           = document.getElementById("f-course").value;
@@ -185,7 +188,10 @@ function debounceSearch() {
 
 function resetFilters() {
   document.getElementById("f-search").value      = "";
-  document.getElementById("f-district").value    = "";
+  document.querySelectorAll(".dist-chk").forEach(c => c.checked = false);
+  document.getElementById("f-district-all").checked = true;
+  document.getElementById("f-district-label").textContent = "All districts";
+  state.filters.district_id = "";
   document.getElementById("f-type").value        = "";
   document.getElementById("f-autonomous").value  = "";
   document.getElementById("f-course").value      = "";
@@ -248,7 +254,8 @@ async function loadColleges(page = 1) {
     list.innerHTML = '<div class="empty-state"><p>No colleges match your filters.</p></div>';
     let totalDenominator = state.totalColleges;
     if (state.filters.district_id) {
-      totalDenominator = state.districtCounts[state.filters.district_id] || totalDenominator;
+      const ids = state.filters.district_id.split(",");
+      totalDenominator = ids.reduce((sum, id) => sum + (state.districtCounts[id] || 0), 0);
     }
     document.getElementById("filter-results").textContent = `Showing 0 of ${totalDenominator}`;
     document.getElementById("load-more-wrap").style.display = "none";
@@ -265,7 +272,8 @@ async function loadColleges(page = 1) {
   const displayedCount = state.colleges.length;
   let totalDenominator = state.totalColleges;
   if (state.filters.district_id) {
-    totalDenominator = state.districtCounts[state.filters.district_id] || totalDenominator;
+    const ids = state.filters.district_id.split(",");
+    totalDenominator = ids.reduce((sum, id) => sum + (state.districtCounts[id] || 0), 0);
   }
   document.getElementById("filter-results").textContent =
     `Showing ${displayedCount} of ${totalDenominator}`;
@@ -788,6 +796,50 @@ async function apiFetch(url, options = {}) {
   return res.json();
 }
 
+function escJs(str) {
+  return String(str || "")
+    .replace(/\\/g, "\\\\")
+    .replace(/'/g, "\\'")
+    .replace(/"/g, '\\"')
+    .replace(/\n/g, "\\n")
+    .replace(/\r/g, "\\r");
+}
+
+function toggleDistrictDropdown() {
+  const dd = document.getElementById("f-district-dropdown");
+  dd.style.display = dd.style.display === "none" ? "block" : "none";
+}
+
+function toggleAllDistricts() {
+  const chks = document.querySelectorAll(".dist-chk");
+  chks.forEach(c => c.checked = false);
+  updateDistrictSelection();
+}
+
+function updateDistrictSelection() {
+  const chks = document.querySelectorAll(".dist-chk");
+  const allChk = document.getElementById("f-district-all");
+  const selected = Array.from(chks).filter(c => c.checked).map(c => c.value);
+  
+  if (selected.length === 0) {
+    allChk.checked = true;
+    document.getElementById("f-district-label").textContent = "All districts";
+    state.filters.district_id = "";
+  } else {
+    allChk.checked = false;
+    document.getElementById("f-district-label").textContent = `${selected.length} district${selected.length > 1 ? 's' : ''}`;
+    state.filters.district_id = selected.join(",");
+  }
+  applyFilters();
+}
+
+document.addEventListener("click", function(event) {
+  const wrap = document.getElementById("f-district-wrapper");
+  if (wrap && !wrap.contains(event.target)) {
+    document.getElementById("f-district-dropdown").style.display = "none";
+  }
+});
+
 function escHtml(str) {
   return String(str || "")
     .replace(/&/g, "&amp;")
@@ -795,13 +847,6 @@ function escHtml(str) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
-}
-
-function escJs(str) {
-  return String(str || "")
-    .replace(/\\/g, "\\\\")
-    .replace(/'/g, "\\'")
-    .replace(/"/g, '\\"');
 }
 
 function hashStr(str) {

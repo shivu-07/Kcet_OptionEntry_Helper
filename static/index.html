@@ -60,9 +60,17 @@
 
     <div class="filter-group">
       <label class="filter-label">District</label>
-      <select id="f-district" class="input" onchange="applyFilters()">
-        <option value="">All districts</option>
-      </select>
+      <div id="f-district-wrapper" style="position: relative;">
+        <button id="f-district-btn" class="input" style="text-align: left; background: #fff; cursor: pointer; display: flex; justify-content: space-between; align-items: center; width: 100%;" onclick="toggleDistrictDropdown()">
+          <span id="f-district-label">All districts</span>
+          <span style="font-size: 0.7rem; color: var(--gray-400);">▼</span>
+        </button>
+        <div id="f-district-dropdown" style="display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: #fff; border: 1px solid var(--gray-300); border-radius: var(--radius-sm); max-height: 250px; overflow-y: auto; z-index: 10; padding: 0.5rem; box-shadow: var(--shadow-md);">
+          <label class="checkbox-label"><input type="checkbox" id="f-district-all" checked onchange="toggleAllDistricts()"> All districts</label>
+          <hr style="margin: 0.35rem 0; border: none; border-top: 1px solid var(--gray-200);">
+          <div id="f-district-items"></div>
+        </div>
+      </div>
     </div>
 
     <div class="filter-group">

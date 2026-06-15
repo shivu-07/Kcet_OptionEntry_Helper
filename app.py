@@ -95,23 +95,32 @@ def api_colleges():
         where_params.extend([f"%{search}%", f"%{search}%"])
 
     if district_id:
-        wheres.append("c.district_id = ?")
-        where_params.append(district_id)
+        d_ids = [d.strip() for d in district_id.split(",") if d.strip()]
+        if d_ids:
+            placeholders = ",".join("?" for _ in d_ids)
+            wheres.append(f"c.district_id IN ({placeholders})")
+            where_params.extend(d_ids)
 
     if inst_type:
-        wheres.append("c.institution_type = ?")
-        where_params.append(inst_type)
+        t_names = [t.strip() for t in inst_type.split(",") if t.strip()]
+        if t_names:
+            placeholders = ",".join("?" for _ in t_names)
+            wheres.append(f"c.institution_type IN ({placeholders})")
+            where_params.extend(t_names)
 
     if autonomous in ("0", "1"):
         wheres.append("c.is_autonomous = ?")
         where_params.append(int(autonomous))
 
     if course_f:
-        wheres.append("""c.id IN (
-            SELECT college_id FROM courses
-            WHERE UPPER(course_name) LIKE UPPER(?)
-        )""")
-        where_params.append(f"%{course_f}%")
+        c_names = [c.strip() for c in course_f.split(",") if c.strip()]
+        if c_names:
+            placeholders = ",".join("?" for _ in c_names)
+            wheres.append(f"""c.id IN (
+                SELECT college_id FROM courses
+                WHERE UPPER(course_name) IN ({placeholders})
+            )""")
+            where_params.extend([c.upper() for c in c_names])
 
     if has_cutoff == "1":
         wheres.append("c.college_code IS NOT NULL")
@@ -120,21 +129,34 @@ def api_colleges():
 
     # Handle dynamic rank join and filter
     rank_params = []
-    if course_f and category_f:
-        rank_join = """
+    if course_f:
+        c_names = [c.strip().upper() for c in course_f.split(",") if c.strip()]
+        if c_names:
+            placeholders = ",".join("?" for _ in c_names)
+            course_condition = f"UPPER(course_name) IN ({placeholders})"
+            course_params = c_names
+        else:
+            course_condition = None
+            course_params = []
+    else:
+        course_condition = None
+        course_params = []
+
+    if course_condition and category_f:
+        rank_join = f"""
         LEFT JOIN kcet_cutoffs k ON k.college_id = c.id
             AND k.seat_cat_code = ?
-            AND k.course_id IN (SELECT id FROM courses WHERE UPPER(course_name) LIKE UPPER(?))
+            AND k.course_id IN (SELECT id FROM courses WHERE {course_condition})
         """
-        rank_params.extend([category_f, f"%{course_f}%"])
-    elif course_f:
+        rank_params.extend([category_f] + course_params)
+    elif course_condition:
         # Default to GM if course is selected but no category (fallback)
-        rank_join = """
+        rank_join = f"""
         LEFT JOIN kcet_cutoffs k ON k.college_id = c.id
             AND k.seat_cat_code = 'GM'
-            AND k.course_id IN (SELECT id FROM courses WHERE UPPER(course_name) LIKE UPPER(?))
+            AND k.course_id IN (SELECT id FROM courses WHERE {course_condition})
         """
-        rank_params.append(f"%{course_f}%")
+        rank_params.extend(course_params)
     else:
         rank_join = "LEFT JOIN kcet_cutoffs k ON k.college_id = c.id AND k.seat_cat_code = 'GM'"
 
