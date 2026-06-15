@@ -231,7 +231,7 @@ python app.py
 
 ### Data Sources
 
-The cutoff data is sourced from official KEA documents:
+The cutoff and college data is sourced from official KEA documents:
 
 - 📄 [KCET 2026 Seat Allocation (KEA Official)](https://cetonline.karnataka.gov.in/keawebentry456/ugcet2026/Eng_seatkannada.pdf)
 - 📄 [KCET Round 3 Cutoff Data (CollegeDunia Reference)](https://image-static.collegedunia.com/public/image/KCET_Round_3_Cutoff_f4bf07a0b55522f47bdd70ed12d3ca4a.pdf)
